@@ -58,6 +58,10 @@ function chipStyle(active: boolean): React.CSSProperties {
   }
 }
 
+// What the import route answers with. Kept next to the screen that draws it
+// rather than in lib/types: nothing outside this panel has any use for it.
+type ImportResult = { created: number; updated: number; skipped: number; errors: Array<{ row: number; reason: string }> }
+
 function Stars({ rating }: { rating: number }) {
   return (
     <span aria-label={`${rating} out of 5`} style={{ color: 'var(--color-warning)', letterSpacing: '0.05em' }}>
@@ -87,6 +91,11 @@ export function ReviewsScreen() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirm, confirmNode] = useConfirm()
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [importStatus, setImportStatus] = useState<'PUBLISHED' | 'PENDING'>('PUBLISHED')
+  const [importBusy, setImportBusy] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
 
   // Nothing here sets state before the fetch has been awaited, so the effect below
   // never causes a cascading render on the pass that scheduled it.
@@ -178,6 +187,29 @@ export function ReviewsScreen() {
     setBusy(false)
   }
 
+  async function importFile(file: File) {
+    setImportBusy(true)
+    setImportError('')
+    setImportResult(null)
+    const form = new FormData()
+    form.append('file', file)
+    form.append('defaultStatus', importStatus)
+    try {
+      const res = await fetch('/api/m/reviews-for-shop/admin/reviews/import', { method: 'POST', body: form })
+      const data = (await res.json()) as ImportResult & { error?: string }
+      if (!res.ok) setImportError(data.error ?? 'Those reviews could not be imported.')
+      else {
+        setImportResult(data)
+        // The queue behind the panel is now out of date by however many reviews
+        // just landed, and the counts on the chips with it.
+        await load()
+      }
+    } catch {
+      setImportError('Those reviews could not be imported.')
+    }
+    setImportBusy(false)
+  }
+
   function toggle(id: string) {
     setSelected((current) => {
       const next = new Set(current)
@@ -245,7 +277,100 @@ export function ReviewsScreen() {
             Clear
           </button>
         )}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ marginLeft: 'auto' }}
+          aria-expanded={transferOpen}
+          onClick={() => setTransferOpen((open) => !open)}
+        >
+          Import / export
+        </button>
       </form>
+
+      {transferOpen && (
+        <section style={card}>
+          <h2 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Import / export</h2>
+
+          <p style={{ ...mutedSmall, margin: '0 0 0.5rem' }}>
+            The spreadsheet has one line per review, and one line for every product nobody has reviewed yet - those say
+            &ldquo;No reviews yet&rdquo; where the review would be. Variations are left out: reviews belong to the
+            product, not to the size or colour someone picked.
+          </p>
+          <a className="btn btn-secondary" href="/api/m/reviews-for-shop/admin/reviews/export" download>
+            Download reviews spreadsheet
+          </a>
+
+          <hr style={{ border: 0, borderTop: '1px solid var(--color-border)', margin: '1rem 0' }} />
+
+          <p style={{ ...mutedSmall, margin: '0 0 0.5rem' }}>
+            Upload the same spreadsheet to bring reviews in. Type them into the empty rows, or paste in a list from
+            wherever you kept them before. Rows that still have their review id are updated rather than added again, so
+            you can send the same file back as many times as you like.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label htmlFor="rvw-import-status" style={mutedSmall}>
+              Reviews with no status of their own
+            </label>
+            <select
+              id="rvw-import-status"
+              style={inputStyle}
+              value={importStatus}
+              disabled={importBusy}
+              onChange={(e) => setImportStatus(e.target.value === 'PENDING' ? 'PENDING' : 'PUBLISHED')}
+            >
+              <option value="PUBLISHED">go straight on the site</option>
+              <option value="PENDING">wait for you</option>
+            </select>
+          </div>
+          <div style={{ marginTop: '0.75rem' }}>
+            <label htmlFor="rvw-import-file" style={{ ...mutedSmall, display: 'block', marginBottom: '0.25rem' }}>
+              Choose a spreadsheet
+            </label>
+            <input
+              id="rvw-import-file"
+              type="file"
+              accept=".csv,text/csv"
+              disabled={importBusy}
+              style={{ font: 'inherit', fontSize: '0.875rem' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                // Cleared so choosing the same file twice still fires a change -
+                // which is exactly what someone does after fixing a bad row.
+                e.target.value = ''
+                if (file) void importFile(file)
+              }}
+            />
+          </div>
+
+          {importBusy && <p style={{ ...mutedSmall, marginBottom: 0 }}>Reading the file…</p>}
+
+          {importError && (
+            <div className="alert alert-danger" role="alert" style={{ marginTop: '0.75rem' }}>
+              {importError}
+            </div>
+          )}
+
+          {importResult && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem' }}>
+                {importResult.created} added, {importResult.updated} updated, {importResult.skipped} left alone
+                {importResult.errors.length > 0 ? `, ${importResult.errors.length} could not be read` : ''}.
+              </p>
+              {importResult.errors.length > 0 && (
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem', ...mutedSmall, color: 'var(--color-danger)' }}>
+                  {importResult.errors.slice(0, 50).map((entry) => (
+                    <li key={entry.row}>
+                      Row {entry.row}: {entry.reason}
+                    </li>
+                  ))}
+                  {importResult.errors.length > 50 && <li>…and {importResult.errors.length - 50} more.</li>}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {error && (
         <div className="alert alert-danger" role="alert">

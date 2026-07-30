@@ -14,6 +14,7 @@ Requires the [shop](https://github.com/cactus-foundation-modules/shop) module (v
 - **Your own reply under any review.** The best answer to a three-star review is usually a good-natured one directly beneath it.
 - **A note when one arrives.** To an address of your choosing. Leave it blank for none.
 - **Asking past customers.** Optional, off by default: a nightly job emails customers a couple of weeks after their order went out, linking to what they bought. Nobody is asked twice about the same order, and nobody is asked about something they have already reviewed.
+- **A spreadsheet of the lot, in and out.** One line per review, plus a line for every product nobody has reviewed yet, which is usually the more interesting half. Upload the same file to bring reviews in - handy when you collected them somewhere else before.
 
 ## Settings
 
@@ -54,6 +55,24 @@ It does not mean the reviewer proved who they are. Anyone can type a customer's 
 If you have Shop Variations installed, each concrete variant is a hidden product row of its own, and that is what an order line records - not the product whose page the shopper was reading. Reviews belong on the page, so this module resolves those hidden rows back to their parent before deciding whether somebody bought the thing, and before asking them what they made of it. Three variants of one desk are one review page and one question, not three.
 
 It does that through a seam Shop already publishes for the purpose, so this module does not require Shop Variations, does not read its tables, and carries on working if something else starts backing variants tomorrow.
+
+## The reviews spreadsheet
+
+**Shop → Reviews → Import / export.** The file has one line per review, and one line for every product with no reviews at all, which says `No reviews yet` where the review would be. Variations are left out: a review belongs to the product, not to the size or colour someone happened to pick. Drafts and archived products are in there, because "which of these has anybody said anything about" is the question the file exists to answer.
+
+| Column | What it holds |
+| --- | --- |
+| `product_sku`, `product_slug`, `product_name` | Which product. Uploading matches on the slug, and falls back to the SKU if there is no slug column. The name is there to be read, never to match on. |
+| `review_id` | Filled in on the way out. Leave it as it is and the review is updated; clear it and the row is added as a new review. |
+| `rating` | 1 to 5, whole numbers. |
+| `review_title`, `review` | The headline and the review itself. |
+| `author_name`, `author_email` | A row with no name is signed "Anonymous". The email is what verified-purchase matching and the one-per-customer rule use. |
+| `status` | `PUBLISHED`, `PENDING` or `REJECTED`. Blank takes whichever you picked on the upload form. |
+| `verified_purchase` | `true` or `false`. Also takes yes, y and 1. |
+| `reply` | Your own answer, shown under the review. |
+| `created_at`, `published_at` | ISO dates, so imported reviews keep the day they were written. Blank on an update leaves the dates alone. |
+
+Uploading the same file twice does not double anything: rows keep their review id, and a row without one is skipped if the same person has already said the same words about the same product. Rows it cannot use are listed back at you by row number, and the rest still go in. Files are capped at 5,000 rows - split a bigger one, or it will not finish in the time a request gets.
 
 ## Storefront routes
 

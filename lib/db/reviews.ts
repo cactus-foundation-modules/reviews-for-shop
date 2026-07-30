@@ -316,6 +316,201 @@ export async function deleteReviews(ids: string[]): Promise<number> {
   return prisma.$executeRaw`DELETE FROM "rvw_reviews" WHERE "id" = ANY(${ids}::text[])`
 }
 
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+// One line of the CSV as the database hands it over. Every review column is
+// nullable because the row may be a product with no reviews at all: the LEFT
+// JOIN is what puts those products in the file rather than quietly leaving out
+// the half of the catalogue nobody has written about yet.
+export type RvwExportRow = {
+  product_sku: string | null
+  product_slug: string
+  product_name: string
+  review_id: string | null
+  rating: number | null
+  title: string | null
+  body: string | null
+  author_name: string | null
+  author_email: string | null
+  status: RvwStatus | null
+  verified_purchase: boolean | null
+  reply_body: string | null
+  created_at: Date | null
+  published_at: Date | null
+}
+
+/**
+ * The whole catalogue with its reviews hanging off it, one row per review and
+ * one row per product that has none.
+ *
+ * `catalogue_hidden = false` is what keeps variations out. A shop with
+ * shop-variations installed carries a hidden child product per variant, each
+ * with its own SKU and price; those are not products an owner reviews, they are
+ * rows behind the picker on the parent's page. Filtering on shop's own column
+ * rather than reading shop-variations' tables means this works the same whether
+ * that module is installed or not.
+ *
+ * Drafts and archived products are included. An owner exporting their reviews is
+ * taking stock, and a product they have not published yet is exactly the sort of
+ * thing they want to see an empty row for.
+ */
+export async function listReviewsForExport(): Promise<RvwExportRow[]> {
+  return prisma.$queryRaw<RvwExportRow[]>`
+    SELECT
+      p."sku" AS product_sku,
+      p."slug" AS product_slug,
+      p."name" AS product_name,
+      r."id" AS review_id,
+      r."rating" AS rating,
+      r."title" AS title,
+      r."body" AS body,
+      r."author_name" AS author_name,
+      r."author_email" AS author_email,
+      r."status" AS status,
+      r."verified_purchase" AS verified_purchase,
+      r."reply_body" AS reply_body,
+      r."created_at" AS created_at,
+      r."published_at" AS published_at
+    FROM "shp_products" p
+    LEFT JOIN "rvw_reviews" r ON r."product_id" = p."id"
+    WHERE p."catalogue_hidden" = false
+    ORDER BY p."name" ASC, p."slug" ASC, r."created_at" ASC
+  `
+}
+
+// ---------------------------------------------------------------------------
+// Import
+// ---------------------------------------------------------------------------
+
+export type RvwProductKeyRow = { id: string; slug: string; sku: string | null }
+
+/**
+ * Every product a review may be attached to, keyed the two ways the CSV can name
+ * one. Read in a single query rather than per row: a catalogue-sized file would
+ * otherwise be a thousand round trips, and this route has sixty seconds.
+ */
+export async function listProductKeys(): Promise<RvwProductKeyRow[]> {
+  return prisma.$queryRaw<RvwProductKeyRow[]>`
+    SELECT "id", "slug", "sku" FROM "shp_products" WHERE "catalogue_hidden" = false
+  `
+}
+
+/** Which of these review ids actually exist, so an edited file cannot invent one. */
+export async function findExistingReviewIds(ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT "id" FROM "rvw_reviews" WHERE "id" = ANY(${ids}::text[])
+  `
+  return new Set(rows.map((row) => row.id))
+}
+
+/**
+ * The reviews already held against these products, reduced to the product,
+ * address and wording an import compares against. Fetched only for the products
+ * the file mentions - the whole table would be the wrong amount of memory for a
+ * file about six products.
+ */
+export async function listReviewFingerprints(productIds: string[]): Promise<Array<{ productId: string; email: string; body: string }>> {
+  if (productIds.length === 0) return []
+  const rows = await prisma.$queryRaw<{ product_id: string; author_email: string; body: string }[]>`
+    SELECT "product_id", "author_email", "body" FROM "rvw_reviews" WHERE "product_id" = ANY(${productIds}::text[])
+  `
+  return rows.map((row) => ({ productId: row.product_id, email: row.author_email, body: row.body }))
+}
+
+// Every date is resolved before it gets here (see lib/import.ts): the SQL below
+// stores what it is given rather than deciding when a review was written, so the
+// rules about that live in one readable place instead of inside a CASE.
+export type ImportReviewInsert = {
+  productId: string
+  authorName: string
+  authorEmail: string
+  rating: number
+  title: string | null
+  body: string
+  status: RvwStatus
+  verifiedPurchase: boolean
+  reply: string | null
+  replyAt: Date | null
+  createdAt: Date
+  publishedAt: Date | null
+}
+
+// Every nullable parameter carries its cast. A NULL arriving in a VALUES list
+// with no type around it is a "could not determine data type of parameter" from
+// Postgres, and the first row of a batch is exactly where that lands.
+function insertTuple(row: ImportReviewInsert): Prisma.Sql {
+  return Prisma.sql`(
+    ${row.productId}, ${row.authorName}, ${row.authorEmail}, ${row.rating}::int, ${row.title}::text, ${row.body},
+    ${row.status}, ${row.verifiedPurchase}::boolean, ${row.reply}::text, ${row.replyAt}::timestamp(3),
+    ${row.createdAt}::timestamp(3), ${row.publishedAt}::timestamp(3)
+  )`
+}
+
+/**
+ * Writes a batch of imported reviews in one statement. Batched because an import
+ * is measured in hundreds of rows and this module's routes share the sixty-second
+ * ceiling every module route has.
+ */
+export async function insertImportedReviews(rows: ImportReviewInsert[]): Promise<number> {
+  if (rows.length === 0) return 0
+  return prisma.$executeRaw(Prisma.sql`
+    INSERT INTO "rvw_reviews" (
+      "product_id", "author_name", "author_email", "rating", "title", "body",
+      "status", "verified_purchase", "reply_body", "reply_at", "created_at", "published_at"
+    ) VALUES ${Prisma.join(rows.map(insertTuple))}
+  `)
+}
+
+// Same shape as an insert, except that a missing date means "leave the one the
+// review already has" rather than "use now".
+export type ImportReviewUpdate = Omit<ImportReviewInsert, 'createdAt' | 'replyAt'> & {
+  id: string
+  createdAt: Date | null
+}
+
+/**
+ * Rewrites reviews the file gave an id for. One statement per batch, using a
+ * VALUES list joined back onto the table, so editing four hundred rows in a
+ * spreadsheet is four hundred rows changed rather than four hundred queries.
+ */
+export async function updateImportedReviews(rows: ImportReviewUpdate[]): Promise<number> {
+  if (rows.length === 0) return 0
+  const values = rows.map(
+    (row) => Prisma.sql`(
+      ${row.id}, ${row.productId}, ${row.authorName}, ${row.authorEmail}, ${row.rating}::int, ${row.title}::text, ${row.body},
+      ${row.status}, ${row.verifiedPurchase}::boolean, ${row.reply}::text, ${row.createdAt}::timestamp(3), ${row.publishedAt}::timestamp(3)
+    )`,
+  )
+  return prisma.$executeRaw(Prisma.sql`
+    UPDATE "rvw_reviews" AS r SET
+      "product_id" = v.product_id,
+      "author_name" = v.author_name,
+      "author_email" = v.author_email,
+      "rating" = v.rating,
+      "title" = v.title,
+      "body" = v.body,
+      "status" = v.status,
+      "verified_purchase" = v.verified_purchase,
+      "reply_body" = v.reply,
+      -- Stamped only where there is a reply to stamp, and never cleared back to a
+      -- date with no words against it.
+      "reply_at" = CASE WHEN v.reply IS NULL THEN NULL ELSE COALESCE(r."reply_at", CURRENT_TIMESTAMP) END,
+      -- A blank date column leaves the review's own dates alone. The file is
+      -- edited in a spreadsheet, and a cleared cell there is far more often a
+      -- slip than an instruction to forget when the review was written.
+      "created_at" = COALESCE(v.created_at, r."created_at"),
+      "published_at" = COALESCE(v.published_at, r."published_at"),
+      "updated_at" = CURRENT_TIMESTAMP
+    FROM (VALUES ${Prisma.join(values)}) AS v (
+      id, product_id, author_name, author_email, rating, title, body, status, verified_purchase, reply, created_at, published_at
+    )
+    WHERE r."id" = v.id
+  `)
+}
+
 /** Counts for the admin list's filter chips, including the "waiting for you" one. */
 export async function countReviewsByStatus(): Promise<Record<RvwStatus, number>> {
   const rows = await prisma.$queryRaw<{ status: RvwStatus; count: bigint }[]>`
