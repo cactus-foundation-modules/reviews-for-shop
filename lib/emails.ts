@@ -1,12 +1,13 @@
 import { resolveBranding } from '@/lib/config/branding'
 import { getSiteUrlOrNull, isEmailConfigured } from '@/lib/config/env'
 import { sendEmail } from '@/lib/email/index'
+import { renderEmailTemplate } from '@/lib/email/render'
 import { productHref } from '@/modules/reviews-for-shop/lib/db/reviews'
 
-// Both emails this module sends. Plain HTML built here rather than through shop's
-// shp_email_templates: those are the order lifecycle's templates, editable by the
-// owner and logged against an order, and neither of these is about an order's
-// progress. Nothing here is worth a schema of its own yet.
+// Both emails this module sends. The wording, the on/off switch and the design
+// wrapped around them live with every other email on the site, in core's
+// Settings > Emails; this file only works out the merge values and posts the
+// result. Defaults are in lib/email-templates.ts.
 
 export function escapeHtml(value: string): string {
   return value
@@ -45,34 +46,27 @@ export async function sendNewReviewNotice(params: {
   const site = getSiteUrlOrNull()
   const link = site && params.adminPath ? `${site}${params.adminPath}/m/reviews-for-shop/reviews` : null
 
-  const subject = params.pending
-    ? `New review waiting: ${params.productName}`
-    : `New review published: ${params.productName}`
+  const rendered = await renderEmailTemplate('reviews-for-shop.new-review', {
+    siteName: branding.name,
+    productName: params.productName,
+    stars: stars(params.rating),
+    rating: String(params.rating),
+    authorName: params.authorName,
+    reviewTitle: params.title ?? '',
+    hasTitle: params.title ? 'true' : 'false',
+    // Escaped here, then handed over as a rawTag: the line breaks a shopper
+    // typed have to survive as <br />, and there is no way to do that after
+    // core has escaped the lot.
+    reviewBody: escapeHtml(params.body).replace(/\n+/g, '<br />'),
+    isPending: params.pending ? 'true' : 'false',
+    isPublished: params.pending ? 'false' : 'true',
+    pendingWord: params.pending ? 'waiting' : 'published',
+    adminUrl: link ?? '',
+    hasLink: link ? 'true' : 'false',
+  })
+  if (!rendered) return
 
-  const lines = [
-    `<p><strong>${escapeHtml(params.productName)}</strong> has a new review.</p>`,
-    `<p>${stars(params.rating)} (${params.rating} out of 5) from ${escapeHtml(params.authorName)}</p>`,
-    params.title ? `<p><strong>${escapeHtml(params.title)}</strong></p>` : '',
-    `<blockquote>${escapeHtml(params.body).replace(/\n+/g, '<br />')}</blockquote>`,
-    params.pending
-      ? '<p>It is waiting for you and is not on the site yet.</p>'
-      : '<p>It is already on the product page.</p>',
-    link ? `<p><a href="${link}">Open your reviews</a></p>` : '',
-  ]
-
-  const html = lines.filter(Boolean).join('\n')
-  const text = [
-    `${params.productName} has a new review.`,
-    `${params.rating} out of 5 from ${params.authorName}`,
-    params.title ?? '',
-    params.body,
-    params.pending ? 'It is waiting for you and is not on the site yet.' : 'It is already on the product page.',
-    link ?? '',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-
-  await sendEmail({ to: params.to, subject: `${branding.name}: ${subject}`, html, text })
+  await sendEmail({ to: params.to, subject: rendered.subject, html: rendered.html, text: rendered.text })
 }
 
 /**
@@ -102,29 +96,23 @@ export async function sendReviewInvite(params: {
     .map((product) => `<li><a href="${site}${productHref(product.slug)}#reviews">${escapeHtml(product.name)}</a></li>`)
     .join('\n')
 
-  const html = [
-    `<p>Hello ${escapeHtml(firstName)},</p>`,
-    `<p>You ordered ${one ? 'this' : 'these'} from us a little while ago (order ${escapeHtml(params.orderNumber)}), and we would like to know how ${one ? 'it has' : 'they have'} got on:</p>`,
-    `<ul>${items}</ul>`,
-    '<p>A minute of your time and a couple of honest lines helps the next person decide. No obligation, and we would rather have the truth than the compliment.</p>',
-    `<p>Thank you,<br />${escapeHtml(branding.name)}</p>`,
-  ].join('\n')
-
-  const text = [
-    `Hello ${firstName},`,
-    `You ordered ${one ? 'this' : 'these'} from us a little while ago (order ${params.orderNumber}), and we would like to know how ${one ? 'it has' : 'they have'} got on:`,
-    ...params.products.map((product) => `${product.name}: ${site}${productHref(product.slug)}#reviews`),
-    'A minute of your time and a couple of honest lines helps the next person decide.',
-    `Thank you, ${branding.name}`,
-  ].join('\n\n')
-
-  await sendEmail({
-    to: params.to,
-    subject: one
+  // The subject is worked out here rather than in the template: it changes shape
+  // with the number of products, and a one-or-many rule is more than {{#if}} can
+  // carry. An owner rewriting it replaces the whole line, which is the honest
+  // way round.
+  const rendered = await renderEmailTemplate('reviews-for-shop.review-invite', {
+    siteName: branding.name,
+    firstName,
+    orderNumber: params.orderNumber,
+    productList: items,
+    thisOrThese: one ? 'this' : 'these',
+    itOrThey: one ? 'it has' : 'they have',
+    inviteSubject: one
       ? `How did you get on with your ${params.products[0]!.name}?`
       : `How did you get on with your order from ${branding.name}?`,
-    html,
-    text,
   })
+  if (!rendered) return false
+
+  await sendEmail({ to: params.to, subject: rendered.subject, html: rendered.html, text: rendered.text })
   return true
 }
