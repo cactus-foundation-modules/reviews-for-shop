@@ -1,14 +1,9 @@
-import { getSessionFromCookie } from '@/lib/auth/session'
-import { hasReviewsPermission } from '@/modules/reviews-for-shop/lib/access'
-import { ReviewsScreen } from '@/modules/reviews-for-shop/components/admin/ReviewsScreen'
+import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
-export const metadata = { title: 'Reviews — Admin' }
-
-export default async function ReviewsPage() {
-  const user = await getSessionFromCookie()
-  if (!user) return null
-  const canAccess = await hasReviewsPermission(user, 'reviews.access', { allowAccess: true })
-  if (!canAccess) return <div className="alert alert-danger">You do not have permission to manage reviews.</div>
-
-  return <ReviewsScreen />
+// This screen is now a tab on Shop > Catalogue rather than a sidebar link of its own.
+// The route stays put so old bookmarks land on the tab instead of a 404.
+export default async function ReviewsRedirect() {
+  const adminPath = (await headers()).get('x-cactus-admin-path') ?? 'cactus-admin'
+  return redirect(`/${adminPath}/m/shop/products?tab=reviews-for-shop`)
 }
