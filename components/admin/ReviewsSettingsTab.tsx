@@ -17,7 +17,7 @@ const card = {
 } as const
 
 const legend = { fontSize: '0.9375rem', fontWeight: 600, margin: '0 0 0.25rem' } as const
-const hint = { display: 'block', fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' } as const
+const hint = { display: 'block', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' } as const
 const field = { display: 'grid', gap: '0.25rem', marginBottom: '1rem' } as const
 const input = {
   font: 'inherit',
@@ -100,12 +100,12 @@ export function ReviewsSettingsTab() {
   }
 
   if (!settings) {
-    return <p style={{ color: 'var(--color-text-muted)' }}>{error || 'Loading…'}</p>
+    return <p style={{ color: 'var(--color-text-secondary)' }}>{error || 'Loading…'}</p>
   }
 
   return (
     <form onSubmit={save}>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
+      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
         How customer reviews are collected, checked and shown on your shop.
       </p>
 
@@ -285,7 +285,7 @@ export function ReviewsSettingsTab() {
       </section>
 
       {error && <p style={{ color: 'var(--color-error)', marginBottom: '1rem' }}>{error}</p>}
-      {saved && !error && <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>Saved.</p>}
+      {saved && !error && <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Saved.</p>}
 
       <button type="submit" className="btn btn-primary" disabled={saving}>
         {saving ? 'Saving…' : 'Save settings'}

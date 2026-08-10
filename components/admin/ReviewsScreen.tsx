@@ -33,7 +33,7 @@ const inputStyle = {
   color: 'var(--color-fg)',
 } as const
 
-const mutedSmall = { fontSize: '0.8125rem', color: 'var(--color-text-muted)' } as const
+const mutedSmall = { fontSize: '0.8125rem', color: 'var(--color-text-secondary)' } as const
 
 type Filter = RvwStatus | 'ALL'
 
@@ -400,7 +400,7 @@ export function ReviewsScreen() {
 
       {reviews.length === 0 ? (
         <section style={card}>
-          <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
+          <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
             {filter === 'PENDING'
               ? 'Nothing waiting. Either your customers are quiet or you are very much on top of things.'
               : 'No reviews here yet.'}
