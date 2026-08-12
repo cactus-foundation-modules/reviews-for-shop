@@ -15,6 +15,9 @@ type Props = {
   // the list above the form can refetch and the shopper sees their own words land.
   // A held review changes nothing on the page, so nothing is refetched for one.
   onPublished?: () => void
+  // Called once a review has been accepted, published or held. The panel uses it
+  // to drop the "Write a review" toggle, so the thank-you cannot be hidden again.
+  onSent?: () => void
 }
 
 /**
@@ -26,7 +29,7 @@ type Props = {
  * front - a shopper should not write four paragraphs and then be told that only
  * customers may review.
  */
-export function ReviewForm({ productId, rules, onPublished }: Props) {
+export function ReviewForm({ productId, rules, onPublished, onSent }: Props) {
   const [rating, setRating] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -90,6 +93,7 @@ export function ReviewForm({ productId, rules, onPublished }: Props) {
         setError(data.error || 'Your review could not be saved. Please try again.')
       } else {
         setThanks(data.message || 'Thank you for your review.')
+        onSent?.()
         if (data.status === 'PUBLISHED') onPublished?.()
       }
     } catch {

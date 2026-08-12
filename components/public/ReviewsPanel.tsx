@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { ReviewForm } from '@/modules/reviews-for-shop/components/public/ReviewForm'
 import { ReviewSummaryPanel, ReviewsList } from '@/modules/reviews-for-shop/components/public/ReviewsView'
 import { REVIEWS_CSS } from '@/modules/reviews-for-shop/components/public/reviews-css'
@@ -20,6 +20,14 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
   const [summary, setSummary] = useState(payload.summary)
   const [total, setTotal] = useState(payload.total)
   const [busy, setBusy] = useState(false)
+  // The form is behind a button rather than sat open at the bottom of the page:
+  // most people come to read reviews, not to write one, and a form the length of
+  // this one pushed everything else up out of the way.
+  const [formOpen, setFormOpen] = useState(false)
+  // Once a review has gone in, the toggle goes away - the form is showing its own
+  // thank-you and a "Cancel" beside it would only invite the shopper to hide it.
+  const [sent, setSent] = useState(false)
+  const formId = useId()
 
   const fetchPage = useCallback(
     async (offset: number): Promise<RvwProductPayload | null> => {
@@ -64,7 +72,24 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
     <>
       <style dangerouslySetInnerHTML={{ __html: REVIEWS_CSS }} />
       <div className="rvw-wrap" id="reviews">
-        {heading && <h2 className="rvw-heading">{heading}</h2>}
+        {/* One row for the heading and the write button. On a product page the
+            heading belongs to shop's own section header rather than to this
+            module, so the row holds only the button - and the CSS lifts it up
+            onto that header's line, which is where it was asked for. */}
+        <div className="rvw-top">
+          {heading && <h2 className="rvw-heading">{heading}</h2>}
+          {!sent && (
+            <button
+              className="rvw-write"
+              type="button"
+              aria-expanded={formOpen}
+              aria-controls={formId}
+              onClick={() => setFormOpen((open) => !open)}
+            >
+              {formOpen ? 'Cancel' : 'Write a review'}
+            </button>
+          )}
+        </div>
         <ReviewSummaryPanel summary={summary} />
         <ReviewsList reviews={reviews} />
         {reviews.length < total && (
@@ -72,7 +97,16 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
             {busy ? 'Loading…' : `Show more (${total - reviews.length} to go)`}
           </button>
         )}
-        <ReviewForm productId={payload.productId} rules={payload.rules} onPublished={refresh} />
+        {formOpen && (
+          <div id={formId}>
+            <ReviewForm
+              productId={payload.productId}
+              rules={payload.rules}
+              onPublished={refresh}
+              onSent={() => setSent(true)}
+            />
+          </div>
+        )}
       </div>
     </>
   )

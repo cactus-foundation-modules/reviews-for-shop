@@ -10,6 +10,24 @@ export const REVIEWS_CSS = `
 .rvw-wrap{display:grid;gap:20px}
 .rvw-heading{font-size:20px;font-weight:700;margin:0}
 
+/* Heading (when this module draws one) on the left, the write button on the
+   right. margin-left:auto rather than space-between, so the button still sits
+   hard right when there is no heading beside it. */
+.rvw-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rvw-write{margin-left:auto;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  padding:9px 18px;border-radius:8px;border:1px solid var(--color-border-strong);
+  background:var(--color-surface);color:var(--color-fg)}
+.rvw-write:hover{border-color:var(--color-primary);background:var(--color-bg-subtle)}
+.rvw-write:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+/* On a product page the "Reviews" header above this panel is shop's, one level
+   up in its own section element, so the button cannot be a sibling of it. It is
+   lifted onto that line instead: 18px down is where shop's 24px heading sits
+   inside the section's 20px top padding. A shop that ever changes that markup
+   only loses the lift - :has() stops matching and the button drops back into the
+   panel, right-aligned, which is where it renders in a tab or accordion anyway. */
+.spd-section:has(> .rvw-wrap > .rvw-top){position:relative}
+.spd-section > .rvw-wrap > .rvw-top{position:absolute;top:18px;right:0;margin:0}
+
 .rvw-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 
 .rvw-stars{display:inline-flex;gap:2px;line-height:0;vertical-align:middle}
