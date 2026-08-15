@@ -1,6 +1,6 @@
 {
   "name": "cactus-module-reviews-for-shop",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Customer product reviews for the Cactus shop, with moderation, verified purchases and review invitations",
   "license": "MIT",
   "private": true
