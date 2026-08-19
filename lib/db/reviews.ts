@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db/prisma'
 import { Prisma } from '@prisma/client'
-import { getProductUrlStyle, productHref, type ProductUrlStyle } from '@/modules/shop/lib/product-url'
+import { productHref, type ProductUrlStyle } from '@/modules/shop/lib/product-url'
+import { getProductUrlStyle } from '@/modules/shop/lib/product-url-server'
 import type {
   RvwPublicReview,
   RvwReview,

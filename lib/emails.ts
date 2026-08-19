@@ -2,7 +2,8 @@ import { resolveBranding } from '@/lib/config/branding'
 import { getSiteUrlOrNull, isEmailConfigured } from '@/lib/config/env'
 import { sendEmail } from '@/lib/email/index'
 import { renderEmailTemplate } from '@/lib/email/render'
-import { getProductUrlStyle, productHref } from '@/modules/shop/lib/product-url'
+import { productHref } from '@/modules/shop/lib/product-url'
+import { getProductUrlStyle } from '@/modules/shop/lib/product-url-server'
 
 // Both emails this module sends. The wording, the on/off switch and the design
 // wrapped around them live with every other email on the site, in core's
