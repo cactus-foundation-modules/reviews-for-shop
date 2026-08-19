@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db/prisma'
 import { Prisma } from '@prisma/client'
+import { getProductUrlStyle, productHref, type ProductUrlStyle } from '@/modules/shop/lib/product-url'
 import type {
   RvwPublicReview,
   RvwReview,
@@ -34,19 +35,20 @@ type ReviewRow = {
   order_number: string | null
 }
 
-// Where a product lives on the storefront. Hardcoded because shop's own cards and
-// sitemap hardcode the same path (lib/card-template.tsx); the day that becomes
-// configurable, this is the one line to change.
-export function productHref(slug: string): string {
-  return `/shop/products/${slug}`
-}
+// Where a product lives on the storefront. It is configurable now - a shop can
+// move its products to the site root, where the old /shop/products/<slug>
+// address stops existing altogether - so this defers to shop's own builder
+// rather than guessing. Shop is a declared dependency (requiresModules), which
+// is why importing it here is safe.
+export { productHref } from '@/modules/shop/lib/product-url'
 
-function toReview(row: ReviewRow): RvwReview {
+function toReview(row: ReviewRow, urlStyle: ProductUrlStyle): RvwReview {
   return {
     id: row.id,
     productId: row.product_id,
     productName: row.product_name,
     productSlug: row.product_slug,
+    productHref: productHref(row.product_slug, urlStyle),
     memberId: row.member_id,
     authorName: row.author_name,
     authorEmail: row.author_email,
@@ -183,10 +185,12 @@ export async function listLatestPublished(opts: {
     ORDER BY COALESCE(r."published_at", r."created_at") DESC
     LIMIT ${opts.limit}
   `)
+  // One style lookup for the whole wall rather than one per review.
+  const urlStyle = await getProductUrlStyle()
   return rows.map((row) => ({
     ...toPublicReview(row, opts.showVerified),
     productName: row.product_name,
-    productHref: productHref(row.product_slug),
+    productHref: productHref(row.product_slug, urlStyle),
   }))
 }
 
@@ -275,12 +279,13 @@ export async function listReviews(filter: ListReviewsFilter): Promise<{ reviews:
     SELECT COUNT(*)::bigint AS count FROM "rvw_reviews" r
     JOIN "shp_products" p ON p."id" = r."product_id" ${where}
   `)
-  return { reviews: rows.map(toReview), total: Number(counted[0]?.count ?? 0) }
+  const urlStyle = await getProductUrlStyle()
+  return { reviews: rows.map((row) => toReview(row, urlStyle)), total: Number(counted[0]?.count ?? 0) }
 }
 
 export async function getReview(id: string): Promise<RvwReview | null> {
   const rows = await prisma.$queryRaw<ReviewRow[]>(Prisma.sql`${SELECT_WITH_PRODUCT} WHERE r."id" = ${id} LIMIT 1`)
-  return rows[0] ? toReview(rows[0]) : null
+  return rows[0] ? toReview(rows[0], await getProductUrlStyle()) : null
 }
 
 /**

@@ -28,6 +28,10 @@ export type RvwReview = {
   productId: string
   productName: string
   productSlug: string
+  /** Where the product actually lives, resolved server-side against the shop's
+   * chosen URL style - a shop serving products off the site root has no
+   * /shop/products/<slug> address to guess at. */
+  productHref: string
   memberId: string | null
   authorName: string
   authorEmail: string

@@ -2,7 +2,7 @@ import { resolveBranding } from '@/lib/config/branding'
 import { getSiteUrlOrNull, isEmailConfigured } from '@/lib/config/env'
 import { sendEmail } from '@/lib/email/index'
 import { renderEmailTemplate } from '@/lib/email/render'
-import { productHref } from '@/modules/reviews-for-shop/lib/db/reviews'
+import { getProductUrlStyle, productHref } from '@/modules/shop/lib/product-url'
 
 // Both emails this module sends. The wording, the on/off switch and the design
 // wrapped around them live with every other email on the site, in core's
@@ -92,8 +92,9 @@ export async function sendReviewInvite(params: {
   const firstName = params.customerName.trim().split(/\s+/)[0] || 'there'
   const one = params.products.length === 1
 
+  const urlStyle = await getProductUrlStyle()
   const items = params.products
-    .map((product) => `<li><a href="${site}${productHref(product.slug)}#reviews">${escapeHtml(product.name)}</a></li>`)
+    .map((product) => `<li><a href="${site}${productHref(product.slug, urlStyle)}#reviews">${escapeHtml(product.name)}</a></li>`)
     .join('\n')
 
   // The subject is worked out here rather than in the template: it changes shape

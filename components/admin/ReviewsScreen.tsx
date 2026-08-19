@@ -428,7 +428,7 @@ export function ReviewsScreen() {
                   )}
                 </div>
                 <div style={mutedSmall}>
-                  <a href={`/shop/products/${review.productSlug}`} target="_blank" rel="noopener noreferrer">
+                  <a href={review.productHref} target="_blank" rel="noopener noreferrer">
                     {review.productName}
                   </a>
                   {' · '}
