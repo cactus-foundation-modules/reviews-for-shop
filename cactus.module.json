@@ -1,6 +1,6 @@
 {
   "name": "reviews-for-shop",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "tablePrefix": "rvw_",
   "description": "Customer reviews for the Shop: shoppers rate a product out of five and say why, the ratings show on the product page as a Reviews tab or as blocks you place yourself, and every review lands in an admin list where you publish it, reply to it or bin it. Reviews can go up on their own or wait for you, and can be limited to people who actually bought the thing.",
   "requiresCoreVersion": "0.5.1026",

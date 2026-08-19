@@ -3,7 +3,7 @@ import { getSiteUrlOrNull, isEmailConfigured } from '@/lib/config/env'
 import { sendEmail } from '@/lib/email/index'
 import { renderEmailTemplate } from '@/lib/email/render'
 import { productHref } from '@/modules/shop/lib/product-url'
-import { getProductUrlStyle } from '@/modules/shop/lib/product-url-server'
+import { getProductUrlStyle } from '@/modules/reviews-for-shop/lib/product-url-style'
 
 // Both emails this module sends. The wording, the on/off switch and the design
 // wrapped around them live with every other email on the site, in core's
