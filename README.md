@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="module-art.webp" alt="Reviews for Shop" width="640" />
+</p>
+
 # Reviews for Shop
 
 Customer reviews for the [Cactus](https://github.com/usersaynoso/cactus-foundation) shop. Shoppers rate a product out of five and say why, the ratings appear on the product page, and every review lands in an admin list where you publish it, answer it or bin it.
