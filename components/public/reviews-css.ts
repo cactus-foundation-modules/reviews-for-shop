@@ -147,5 +147,11 @@ export const REVIEWS_CSS = `
     top:calc(var(--spd-header-h,72px) + var(--spd-tabnav-h,0px) + 16px)}
   .rvw-cols.split .rvw-summary{flex-direction:column;align-items:stretch;gap:14px}
   .rvw-cols.split .rvw-score{min-width:0}
+  /* The bars' flex-basis of 220px was written for the row above, where it is a
+     WIDTH. Stood on end in this column it became a height instead, and 220px is
+     far more than five bars need - so they stretched apart and the panel ran on
+     past them with a dead strip of nothing at the bottom. Content height here,
+     and the box ends where the bars do. */
+  .rvw-cols.split .rvw-bars{flex:0 0 auto;min-width:0}
 }
 `
