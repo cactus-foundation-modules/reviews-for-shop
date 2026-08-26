@@ -6,6 +6,17 @@
 // into dark mode, which is why there is not a single hex value below. The same
 // string is used by the Puck editor halves and the RSC halves, which is what keeps
 // the canvas and the storefront looking identical.
+import { DEFAULT_BREAKPOINTS } from '@/modules/shop/lib/breakpoints-shared'
+
+// Tablet-and-up starts 0.02px above the site's mobile breakpoint - core's own
+// non-overlapping convention (lib/design/tokens.ts), so the two-column reviews
+// layout below turns on at exactly the width every other tablet rule does. The
+// platform default rather than this site's own value: these components are
+// client islands with no route to the site's design tokens, and a shop that
+// moves its breakpoint moves this one query out of step by that much and
+// nothing else.
+const TABLET_UP = `${(parseInt(DEFAULT_BREAKPOINTS.mobileBp, 10) || 640) + 0.02}px`
+
 export const REVIEWS_CSS = `
 .rvw-wrap{display:grid;gap:20px}
 .rvw-heading{font-size:20px;font-weight:700;margin:0}
@@ -46,6 +57,11 @@ export const REVIEWS_CSS = `
 .rvw-bar-track{flex:1;height:8px;border-radius:999px;background:var(--color-bg-subtle);overflow:hidden}
 .rvw-bar-fill{display:block;height:100%;background:var(--color-warning)}
 .rvw-bar-count{width:24px;text-align:right;flex:none}
+
+/* Phones: one column, summary above the reviews - the order they are written
+   in. The two-column arrangement is in the tablet-and-up query at the bottom. */
+.rvw-cols{display:grid;gap:20px;align-items:start}
+.rvw-main{display:grid;gap:20px;min-width:0}
 
 .rvw-list{display:grid;gap:14px;list-style:none;margin:0;padding:0}
 .rvw-item{border:1px solid var(--color-border);border-radius:12px;padding:16px 18px;background:var(--color-surface)}
@@ -103,4 +119,33 @@ export const REVIEWS_CSS = `
 .rvw-wall .rvw-item{display:flex;flex-direction:column;gap:8px}
 .rvw-wall-product{font-size:12.5px;font-weight:600;color:var(--color-link);text-decoration:none;margin-top:auto}
 .rvw-wall-product:hover{color:var(--color-link-hover);text-decoration:underline}
+
+/* Tablet and desktop: the reviews take the width and the score panel stands in
+   a column of its own on the right, pinned so it is still there - and still
+   says what the shop is rated overall - after a page of other people's reviews
+   has scrolled past it.
+
+   Explicit placement rather than source order, because the summary is written
+   first (it reads first on a phone, and it is what a screen reader should meet
+   first either way). The two of them share one grid row, which is what makes
+   the pin work: a sticky grid item is held inside its own grid area, and that
+   area is as tall as the reviews beside it. align-items:start is the other half
+   - stretched to the full row the panel would have nowhere to travel.
+
+   The column is a share of the width with a floor and a ceiling: 240px at the
+   narrow end so the bars still read, 320px at the wide end so the panel does
+   not sprawl. Inside it the score sits above its bars rather than beside them -
+   at this width they would wrap onto two lines anyway, and stacking them puts
+   the full width under the bars instead of leaving a ragged gap. */
+@media (min-width:${TABLET_UP}){
+  .rvw-cols.split{grid-template-columns:minmax(0,1fr) clamp(240px,28%,320px);column-gap:24px}
+  .rvw-cols.split > .rvw-main{grid-column:1;grid-row:1}
+  /* Clears the site header and, on a product page, the section tab strip pinned
+     under it - both measured onto :root by shop (GalleryViewportFit and
+     StickyStripHeight). The fallback is shop's own, for a page carrying neither. */
+  .rvw-cols.split > .rvw-side{grid-column:2;grid-row:1;position:sticky;
+    top:calc(var(--spd-header-h,72px) + var(--spd-tabnav-h,0px) + 16px)}
+  .rvw-cols.split .rvw-summary{flex-direction:column;align-items:stretch;gap:14px}
+  .rvw-cols.split .rvw-score{min-width:0}
+}
 `

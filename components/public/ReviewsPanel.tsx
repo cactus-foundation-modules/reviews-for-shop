@@ -20,9 +20,10 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
   const [summary, setSummary] = useState(payload.summary)
   const [total, setTotal] = useState(payload.total)
   const [busy, setBusy] = useState(false)
-  // The form is behind a button rather than sat open at the bottom of the page:
-  // most people come to read reviews, not to write one, and a form the length of
-  // this one pushed everything else up out of the way.
+  // The form is behind a button rather than sat open on the page: most people
+  // come to read reviews, not to write one, and a form the length of this one
+  // pushed everything else out of the way. Open, it renders at the top of the
+  // panel, under the button that asked for it.
   const [formOpen, setFormOpen] = useState(false)
   // Once a review has gone in, the toggle goes away - the form is showing its own
   // thank-you and a "Cancel" beside it would only invite the shopper to hide it.
@@ -90,13 +91,13 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
             </button>
           )}
         </div>
-        <ReviewSummaryPanel summary={summary} />
-        <ReviewsList reviews={reviews} />
-        {reviews.length < total && (
-          <button className="rvw-more" type="button" onClick={showMore} disabled={busy}>
-            {busy ? 'Loading…' : `Show more (${total - reviews.length} to go)`}
-          </button>
-        )}
+        {/* Straight under the button that opened it, and above everything else -
+            on a product page that button is lifted onto shop's section heading
+            (see the CSS), so this is the first thing under it either way. At the
+            foot of the panel, which is where it used to render, a shopper who
+            pressed the button was left looking at a page that had not visibly
+            changed: the form was a screen or more further down, behind every
+            review on the product. */}
         {formOpen && (
           <div id={formId}>
             <ReviewForm
@@ -107,6 +108,27 @@ export function ReviewsPanel({ payload, heading }: { payload: RvwProductPayload;
             />
           </div>
         )}
+        {/* Two columns from tablet up: the reviews on the left, the score and
+            its bars in a column of their own on the right that stays put while
+            the reviews scroll past it. One column below that, summary first, as
+            it always was. `split` rather than a :has() rule because the summary
+            is not always there - a product with no reviews yet would otherwise
+            leave the right-hand column standing empty with nothing in it. */}
+        <div className={`rvw-cols${summary.count > 0 ? ' split' : ''}`}>
+          {summary.count > 0 && (
+            <div className="rvw-side">
+              <ReviewSummaryPanel summary={summary} />
+            </div>
+          )}
+          <div className="rvw-main">
+            <ReviewsList reviews={reviews} />
+            {reviews.length < total && (
+              <button className="rvw-more" type="button" onClick={showMore} disabled={busy}>
+                {busy ? 'Loading…' : `Show more (${total - reviews.length} to go)`}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </>
   )
