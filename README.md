@@ -92,6 +92,12 @@ The viewer check is a route of its own on purpose. The Reviews tab is resolved w
 
 One nightly job, `/api/m/reviews-for-shop/cron/review-invites` at 08:00, collected into `vercel.json` at build time like every other module's. It returns immediately unless review invitations are switched on, and it writes to at most 40 orders per run so the first run on a shop with years of history does not email everybody at once.
 
+## What it publishes to other modules
+
+`shop.product-reviews` (`lib/published-reviews-provider.ts`) hands any module that asks for it the shop's published reviews - product, rating and its scale, wording, the reviewer's name, when it went live, whether the purchase was verified and whether the review answered an invitation. Never the email, the IP or the shop's own reply.
+
+It exists so [Google Shopping](https://github.com/cactus-foundation-modules/google-shopping-for-shop) can serve a product review feed without importing this module, which it must not do - this one is optional on every site. Anything else wanting published reviews reads the same point.
+
 ## Not included
 
 - **Opening the Reviews tab from a link.** Invitation emails link to the product page and its `#reviews` anchor, which lands exactly where you want it when the Reviews block is on the page. With the tab, the shopper arrives at the product and clicks Reviews.
