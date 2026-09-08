@@ -170,3 +170,12 @@ export async function POST(request: NextRequest) {
     message: status === 'PUBLISHED' ? settings.thanksPublished : settings.thanksPending,
   })
 }
+
+// Published reviews are the same for everybody: the GET below reads no cookie
+// (the member session is a POST-time concern), and a review is public the moment
+// it is approved.
+//
+// Shared-cache window for this route's answers, applied by the module dispatcher
+// (lib/cache/module-api-cache.ts) when the owner has ready-made copies switched
+// on and the request carries no session or member cookie.
+export const publicCacheTtl = 300

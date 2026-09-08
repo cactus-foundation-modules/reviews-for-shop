@@ -25,23 +25,32 @@ export function OrderReviewsPanel({ payload }: { payload: unknown }) {
   const left = data.products.length - done.length
   const previously = data.alreadyReviewed
 
+  // Nothing at all before the first star goes in: the card's heading has already
+  // said what it wants, and a second sentence explaining how a row of stars works
+  // is a sentence nobody needed. There is something to say once the count starts
+  // moving, and once it reaches nought.
+  const note =
+    left === 0
+      ? 'That is the lot - thank you. Your reviews help the next person decide.'
+      : left === data.products.length
+        ? null
+        : `${left} to go, if you have the time.`
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: REVIEWS_CSS }} />
       <div className="rvw-order">
-        <p className="rvw-note">
-          {left === 0
-            ? 'That is the lot - thank you. Your reviews help the next person decide.'
-            : left === data.products.length
-              ? 'Pick a rating and we will ask you why. It helps the next person decide.'
-              : `${left} to go, if you have the time.`}
-          {previously > 0 && (
-            <>
-              {' '}
-              You have already reviewed {previously} {previously === 1 ? 'thing' : 'things'} from this order.
-            </>
-          )}
-        </p>
+        {(note || previously > 0) && (
+          <p className="rvw-note">
+            {note}
+            {previously > 0 && (
+              <>
+                {note ? ' ' : ''}
+                You have already reviewed {previously} {previously === 1 ? 'thing' : 'things'} from this order.
+              </>
+            )}
+          </p>
+        )}
 
         <div className="rvw-order-rows">
           {data.products.map((product) => (

@@ -17,13 +17,19 @@ import type { ShopMemberOrderContext, ShopMemberOrderPanelProvider } from '@/mod
 // A customer asked to review a desk that is still on a lorry is being asked to
 // review the wait.
 
-// Between the receipt above it and the parcels and paperwork below.
+// First among the contributed cards, and above the receipt: see `placement`.
 const PANEL_ORDER = 40
 
 export const reviewsOrderPanelProvider: ShopMemberOrderPanelProvider = {
   title: 'Review what you bought',
 
   order: PANEL_ORDER,
+
+  // Above "What you ordered" rather than below it. Somebody who has come back to
+  // an order they finished with weeks ago is not here to re-read the receipt,
+  // and the one thing this page can ask them for is easy to scroll straight past
+  // when it sits underneath a card the length of the order.
+  placement: 'before',
 
   /**
    * Returns null - so no card appears at all - whenever there is nothing to ask:
