@@ -98,6 +98,31 @@ export type RvwViewer = {
   email: string
 }
 
+// One product on a finished order, waiting to be told what its buyer made of it.
+export type RvwOrderReviewProduct = {
+  // The page the review belongs to, which on a shop with options is the parent
+  // rather than the hidden child the order line recorded.
+  id: string
+  name: string
+}
+
+// What the card on a customer's own order page is drawn from.
+//
+// No reviews and no summary: this is somewhere to write one, not somewhere to
+// read other people's, and a card that opened with four strangers' opinions of
+// the desk you have just taken delivery of would be answering a question nobody
+// on that page asked.
+export type RvwOrderPanelPayload = {
+  orderId: string
+  // Everything on the order still waiting for a review, deduplicated by page, so
+  // three variants of one desk are asked about once.
+  products: RvwOrderReviewProduct[]
+  // How many of the order's products have already been reviewed, for the line
+  // that says so. Zero on the first visit.
+  alreadyReviewed: number
+  rules: RvwFormRules
+}
+
 // The whole product-page payload: one fetch (or one server load) covers the
 // summary, the page of reviews and the form's rules.
 export type RvwProductPayload = {

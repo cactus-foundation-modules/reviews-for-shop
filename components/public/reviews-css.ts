@@ -115,6 +115,16 @@ export const REVIEWS_CSS = `
 .rvw-inline{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--color-text-muted)}
 .rvw-inline a{color:inherit;text-decoration:underline}
 
+/* The card on a customer's own order page. It sits inside shop's own card, whose
+   body is already --color-surface, so the rows are separated by a hairline rather
+   than boxed - a box on a box is one border too many. */
+.rvw-order{display:grid;gap:14px}
+.rvw-order-rows{display:grid}
+.rvw-order-row{display:grid;gap:10px;padding:14px 0;border-top:1px solid var(--color-border)}
+.rvw-order-rows > .rvw-order-row:first-child{border-top:0;padding-top:0}
+.rvw-order-name{font-size:14px;font-weight:600;margin:0}
+.rvw-order-more{display:grid;gap:12px}
+
 .rvw-wall{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .rvw-wall .rvw-item{display:flex;flex-direction:column;gap:8px}
 .rvw-wall-product{font-size:12.5px;font-weight:600;color:var(--color-link);text-decoration:none;margin-top:auto}
@@ -153,5 +163,14 @@ export const REVIEWS_CSS = `
      past them with a dead strip of nothing at the bottom. Content height here,
      and the box ends where the bars do. */
   .rvw-cols.split .rvw-bars{flex:0 0 auto;min-width:0}
+
+  /* Product on the left, its five stars hard right, so a five-line order reads
+     as one list of things to rate rather than ten stacked rows. Whatever the
+     rating opened up spans both columns underneath. A row that has been sent
+     drops back to one column - the thank-you is a sentence, not a widget, and
+     squeezed into the star column it wrapped to four lines. */
+  .rvw-order-row{grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:16px}
+  .rvw-order-more{grid-column:1 / -1}
+  .rvw-order-done{grid-template-columns:minmax(0,1fr)}
 }
 `
