@@ -46,7 +46,10 @@ export async function listInviteCandidates(delayDays: number, limit: number): Pr
     JOIN "shp_order_items" i ON i."order_id" = o."id" AND i."product_id" IS NOT NULL
     WHERE o."payment_status" = 'PAID'
       AND o."status" IN ('SHIPPED', 'COMPLETED')
-      AND COALESCE(o."paid_at", o."created_at") <= CURRENT_TIMESTAMP - make_interval(days => ${delayDays})
+      -- ::int4 is load-bearing: Prisma sends a JS integer as bigint and there is no
+      -- make_interval(days => bigint), so without the cast this is a 42883 and the
+      -- nightly invitation run 500s the moment the owner switches invitations on.
+      AND COALESCE(o."paid_at", o."created_at") <= CURRENT_TIMESTAMP - make_interval(days => ${delayDays}::int4)
       AND NOT EXISTS (SELECT 1 FROM "rvw_invites" v WHERE v."order_id" = o."id")
     GROUP BY o."id", o."order_number", o."customer_email", o."customer_name"
     ORDER BY COALESCE(o."paid_at", o."created_at") ASC
