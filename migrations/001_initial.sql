@@ -153,9 +153,13 @@ CREATE INDEX IF NOT EXISTS "rvw_reviews_author_email_idx" ON "rvw_reviews" ("aut
 -- ---------------------------------------------------------------------------
 -- Review invitations
 -- ---------------------------------------------------------------------------
--- One row per (order, product) we have asked about, so the nightly job can never
+-- One row per (order, product) the nightly job has dealt with, so it can never
 -- ask twice. The unique constraint is the guard rather than the query: two runs
 -- overlapping would otherwise both read "not asked yet" and both send.
+--
+-- A row is not always an email. An order we looked at and chose to leave alone
+-- gets rows too, with the reason in "skipped_reason" - otherwise it comes back
+-- as a candidate every night for ever and holds a slot in a run that has forty.
 CREATE TABLE IF NOT EXISTS "rvw_invites" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
     "order_id" TEXT NOT NULL,
@@ -163,7 +167,12 @@ CREATE TABLE IF NOT EXISTS "rvw_invites" (
     -- Where it went, kept so an owner can answer "did you ever email me?" after
     -- the order's address has been changed.
     "email" TEXT NOT NULL,
+    -- When we dealt with it, which is when it was sent for a row that was sent.
     "sent_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- NULL for an email that actually went out. Otherwise why it did not: the
+    -- customer had already reviewed something off this order, say. Both readers
+    -- of this table mean "we emailed them", so both filter on NULL.
+    "skipped_reason" TEXT,
 
     CONSTRAINT "rvw_invites_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "rvw_invites_order_product_key" UNIQUE ("order_id", "product_id"),

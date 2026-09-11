@@ -45,6 +45,9 @@ export async function GET(request: NextRequest) {
         SELECT "id", "email", "sent_at", "order_id", "product_id"
         FROM "rvw_invites"
         WHERE lower("email") = lower(${member.email})
+          -- Rows with a reason are orders the job looked at and left alone. No
+          -- email was ever sent for those, so they are not part of this record.
+          AND "skipped_reason" IS NULL
         ORDER BY "sent_at" DESC NULLS LAST
       `
     : []

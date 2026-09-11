@@ -1,0 +1,11 @@
+-- Review invitations: record the orders we looked at and deliberately did NOT
+-- write to, not only the ones we emailed.
+--
+-- Before this, an order the nightly job decided to leave alone left no trace, so
+-- it came back as a candidate every single night - re-resolving its pages, and
+-- holding one of the forty slots a run has for good. Forty such orders and the
+-- job stops inviting anybody at all.
+--
+-- NULL means "we sent this one", which is every row written before today and
+-- every row the send path writes now. Anything else is the reason we held off.
+ALTER TABLE "rvw_invites" ADD COLUMN IF NOT EXISTS "skipped_reason" TEXT;

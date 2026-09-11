@@ -94,6 +94,7 @@ export async function reviewsPublishedReviews(opts: {
     -- this exact order and product. Its absence is not proof of an unsolicited
     -- review, only that this shop did not ask for it by email.
     LEFT JOIN "rvw_invites" i ON i."order_id" = r."order_id" AND i."product_id" = r."product_id"
+      AND i."skipped_reason" IS NULL
     WHERE r."status" = 'PUBLISHED'
       AND p."status" = 'ACTIVE' AND p."catalogue_hidden" = false
     ORDER BY COALESCE(r."published_at", r."created_at") DESC, r."id" ASC

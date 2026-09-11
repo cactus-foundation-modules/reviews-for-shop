@@ -2,8 +2,11 @@ import { resolveBranding } from '@/lib/config/branding'
 import { getSiteUrlOrNull, isEmailConfigured } from '@/lib/config/env'
 import { sendEmail } from '@/lib/email/index'
 import { renderEmailTemplate } from '@/lib/email/render'
+import { getShopConfigCached } from '@/modules/shop/lib/config'
+import { getOrderItems } from '@/modules/shop/lib/db/orders'
+import { orderEmailLines, renderOrderItemsTable } from '@/modules/shop/lib/order-items-email'
+import { orderTrackingUrl } from '@/modules/shop/lib/order-tracking'
 import { productHref } from '@/modules/shop/lib/product-url'
-import { getProductUrlStyle } from '@/modules/reviews-for-shop/lib/product-url-style'
 
 // Both emails this module sends. The wording, the on/off switch and the design
 // wrapped around them live with every other email on the site, in core's
@@ -82,7 +85,10 @@ export async function sendNewReviewNotice(params: {
 export async function sendReviewInvite(params: {
   to: string
   customerName: string
+  orderId: string
   orderNumber: string
+  /** The order's own status. Only COMPLETED is offered the order page - see below. */
+  orderStatus: string
   products: Array<{ name: string; slug: string }>
 }): Promise<boolean> {
   if (!isEmailConfigured()) return false
@@ -93,10 +99,36 @@ export async function sendReviewInvite(params: {
   const firstName = params.customerName.trim().split(/\s+/)[0] || 'there'
   const one = params.products.length === 1
 
-  const urlStyle = await getProductUrlStyle()
+  // One config read for the lot: the product URL style, the currency the table
+  // prices in, and whether the shop has order tracking to link to at all.
+  const config = await getShopConfigCached()
   const items = params.products
-    .map((product) => `<li><a href="${site}${productHref(product.slug, urlStyle)}#reviews">${escapeHtml(product.name)}</a></li>`)
+    .map(
+      (product) =>
+        `<li><a href="${site}${productHref(product.slug, config.productUrlStyle)}#reviews">${escapeHtml(product.name)}</a></li>`,
+    )
     .join('\n')
+
+  // The order's own lines, as shop's order emails draw them - photograph, name,
+  // quantity, price, and whatever personalisation the line carried. Built from
+  // the ORDER rather than from the deduplicated review pages, because this is the
+  // "here is what you bought" half of the email and the customer knows what they
+  // bought: the 1600mm oak one, not the desk in general.
+  //
+  // Each link then gets the #reviews anchor put back on it. Shop builds a plain
+  // product link, which is right for a dispatch note and one click short here.
+  const orderLines = (await orderEmailLines(await getOrderItems(params.orderId), config)).map((line) => ({
+    ...line,
+    url: line.url ? `${line.url}#reviews` : line.url,
+  }))
+  const orderItems = renderOrderItemsTable(orderLines)
+
+  // Where they can rate the whole order in one go. Shop puts that card on the
+  // order page only once the order is COMPLETED (lib/order-panel-provider.ts), so
+  // a SHIPPED order gets no link rather than a link to a page with nothing on it.
+  // Empty when the shop has guest order tracking switched off, which takes the
+  // whole {{#if}} line with it.
+  const orderUrl = params.orderStatus === 'COMPLETED' ? orderTrackingUrl(params.orderNumber, config) : ''
 
   // The subject is worked out here rather than in the template: it changes shape
   // with the number of products, and a one-or-many rule is more than {{#if}} can
@@ -107,6 +139,9 @@ export async function sendReviewInvite(params: {
     firstName,
     orderNumber: params.orderNumber,
     productList: items,
+    orderItems,
+    orderUrl,
+    hasOrderUrl: orderUrl ? 'true' : 'false',
     thisOrThese: one ? 'this' : 'these',
     itOrThey: one ? 'it has' : 'they have',
     inviteSubject: one

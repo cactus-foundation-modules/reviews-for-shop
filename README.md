@@ -90,7 +90,9 @@ The viewer check is a route of its own on purpose. The Reviews tab is resolved w
 
 ## Cron
 
-One nightly job, `/api/m/reviews-for-shop/cron/review-invites` at 08:00, collected into `vercel.json` at build time like every other module's. It returns immediately unless review invitations are switched on, and it writes to at most 40 orders per run so the first run on a shop with years of history does not email everybody at once.
+One daily job, `/api/m/reviews-for-shop/cron/review-invites` at `0 9 * * *`, collected into `vercel.json` at build time like every other module's. Mid-morning rather than overnight, because an invitation that lands at eight in the morning is read on the commute and answered never. Cron schedules are UTC and core has no per-site timezone, so that is 10am through British Summer Time and 9am through the winter. It returns immediately unless review invitations are switched on, and it writes to at most 40 orders per run so the first run on a shop with years of history does not email everybody at once. An order whose customer has already reviewed something they bought on it is not written to at all - and the decision is recorded in `rvw_invites` with a `skipped_reason`, so the order stops being a candidate rather than being reconsidered every night for the rest of time.
+
+The email carries the order as shop's own items table (`renderOrderItemsTable`, each line linked to that product's `#reviews`), and on a COMPLETED order a **Review your order** link built with shop's `orderTrackingUrl` - the postcode-gated link that lands on `/shop/account/orders/[id]`, the one page rendering this module's order panel. A SHIPPED order gets no such link, because that panel refuses anything short of COMPLETED.
 
 ## What it publishes to other modules
 
