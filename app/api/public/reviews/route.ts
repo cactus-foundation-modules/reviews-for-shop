@@ -13,7 +13,8 @@ import { getAdminPathCached } from '@/lib/config/site'
 import { getMemberFromCookie } from '@/lib/members/session'
 import { errorResponse } from '@/lib/utils'
 import { shopClosedResponse } from '@/modules/shop/lib/access'
-import { checkInMemoryRateLimit, getClientIpFromRequest } from '@/modules/shop/lib/rate-limit'
+import { checkInMemoryRateLimit } from '@/modules/shop/lib/rate-limit'
+import { getClientIp } from '@/lib/auth/rate-limit'
 import { createReview, getProductSummary, hasReviewFromEmail, listLatestPublished } from '@/modules/reviews-for-shop/lib/db/reviews'
 import { findProductById, findProductBySlug } from '@/modules/reviews-for-shop/lib/db/products'
 import { getSettings } from '@/modules/reviews-for-shop/lib/db/settings'
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
   const closed = await shopClosedResponse()
   if (closed) return closed
 
-  const ip = getClientIpFromRequest(request)
+  const ip = await getClientIp()
   if (!checkInMemoryRateLimit(`rvw:${ip}`, SUBMIT_MAX_PER_WINDOW, SUBMIT_WINDOW_MS)) {
     return errorResponse('That is a lot of reviews in one go. Please try again later.', 429)
   }

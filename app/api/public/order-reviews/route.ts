@@ -24,7 +24,8 @@ import { errorResponse } from '@/lib/utils'
 import { shopClosedResponse } from '@/modules/shop/lib/access'
 import { getOrderById } from '@/modules/shop/lib/db/orders'
 import { resolveOrderViewer } from '@/modules/shop/lib/order-viewer'
-import { checkInMemoryRateLimit, getClientIpFromRequest } from '@/modules/shop/lib/rate-limit'
+import { checkInMemoryRateLimit } from '@/modules/shop/lib/rate-limit'
+import { getClientIp } from '@/lib/auth/rate-limit'
 import { createReview, hasReviewFromEmail } from '@/modules/reviews-for-shop/lib/db/reviews'
 import { getSettings } from '@/modules/reviews-for-shop/lib/db/settings'
 import { sendNewReviewNotice } from '@/modules/reviews-for-shop/lib/emails'
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   const closed = await shopClosedResponse()
   if (closed) return closed
 
-  const ip = getClientIpFromRequest(request)
+  const ip = await getClientIp()
   if (!checkInMemoryRateLimit(`rvw:order:${ip}`, SUBMIT_MAX_PER_WINDOW, SUBMIT_WINDOW_MS)) {
     return errorResponse('That is a lot of reviews in one go. Please try again later.', 429)
   }
