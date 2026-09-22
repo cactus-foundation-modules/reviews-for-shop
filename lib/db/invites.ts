@@ -49,7 +49,9 @@ export async function listInviteCandidates(delayDays: number, limit: number): Pr
            array_agg(DISTINCT i."product_id") AS product_ids
     FROM "shp_orders" o
     JOIN "shp_order_items" i ON i."order_id" = o."id" AND i."product_id" IS NOT NULL
-    WHERE o."payment_status" = 'PAID'
+    -- A part-refunded order still delivered goods the customer kept, so it is
+    -- still worth asking about; a fully refunded one is not.
+    WHERE o."payment_status" IN ('PAID', 'PARTIALLY_REFUNDED')
       AND o."status" IN ('SHIPPED', 'COMPLETED')
       -- ::int4 is load-bearing: Prisma sends a JS integer as bigint and there is no
       -- make_interval(days => bigint), so without the cast this is a 42883 and the
