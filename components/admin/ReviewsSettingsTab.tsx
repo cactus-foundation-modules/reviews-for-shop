@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SettingsHeaderActions, SettingsHeaderStatus } from '@/components/admin/SettingsHeaderActions'
 import type { RvwSettings } from '@/modules/reviews-for-shop/lib/types'
 
 // A sub-tab of shop's settings tab rather than a top-level Settings tab, hosted
@@ -74,8 +75,8 @@ export function ReviewsSettingsTab() {
     setSettings((current) => (current ? { ...current, [key]: value } : current))
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
+  async function save(e?: React.FormEvent) {
+    e?.preventDefault()
     if (!settings) return
     setSaving(true)
     setError('')
@@ -109,6 +110,14 @@ export function ReviewsSettingsTab() {
         How customer reviews are collected, checked and shown on your shop.
       </p>
 
+      <SettingsHeaderActions>
+        <SettingsHeaderStatus message={saved ? 'Saved' : null} error={error} />
+        <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void save()}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </SettingsHeaderActions>
+
+      <div className="settings-masonry">
       <section style={card}>
         <h3 style={legend}>Before they appear</h3>
         <Toggle
@@ -284,12 +293,7 @@ export function ReviewsSettingsTab() {
         </div>
       </section>
 
-      {error && <p style={{ color: 'var(--color-error)', marginBottom: '1rem' }}>{error}</p>}
-      {saved && !error && <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Saved.</p>}
-
-      <button type="submit" className="btn btn-primary" disabled={saving}>
-        {saving ? 'Saving…' : 'Save settings'}
-      </button>
+      </div>
     </form>
   )
 }
