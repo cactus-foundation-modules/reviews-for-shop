@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { SettingsHeaderActions, SettingsHeaderStatus } from '@/components/admin/SettingsHeaderActions'
 import type { RvwSettings } from '@/modules/reviews-for-shop/lib/types'
+import { InfoTip } from '@/components/admin/InfoTip'
 
 // A sub-tab of shop's settings tab rather than a top-level Settings tab, hosted
 // through the 'shop.settings-sub-tabs' slot (manifest `host`). Shop lends the space
@@ -34,15 +35,19 @@ function Toggle({
   checked: boolean
   onChange: (value: boolean) => void
 }) {
+  const long = detail.length > 110
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      <label style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', cursor: 'pointer' }}>
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ marginTop: '0.2rem' }} />
-        <span>
-          <span style={{ display: 'block', color: 'var(--color-text)' }}>{label}</span>
-          <span style={hint}>{detail}</span>
-        </span>
+    <div>
+      <label className="settings-check">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        {label}
+        {long && <InfoTip>{detail}</InfoTip>}
       </label>
+      {!long && <span className="field-hint" style={{ display: 'block', marginLeft: '1.75rem' }}>{detail}</span>}
     </div>
   )
 }
@@ -111,7 +116,7 @@ export function ReviewsSettingsTab() {
 
       <div className="settings-masonry">
       <section className="card">
-        <h3 style={legend}>Before they appear</h3>
+        <h3 className="card-title">Before they appear</h3>
         <Toggle
           label="Publish new reviews straight away"
           detail="Leave this off and every review waits in Shop > Reviews until you say so. Turn it on and reviews go up the moment they are written, which is faster and rather more exciting."
@@ -122,6 +127,7 @@ export function ReviewsSettingsTab() {
         <div className="settings-field" style={field}>
           <label htmlFor="rvw-who" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Who may leave a review
+            <InfoTip>Customers are matched on the email address they ordered with. It is not proof of identity - nothing here is - but it does keep a product page to the people who have actually had the thing.</InfoTip>
           </label>
           <select
             id="rvw-who"
@@ -133,10 +139,6 @@ export function ReviewsSettingsTab() {
             <option value="MEMBERS">Signed-in members only</option>
             <option value="VERIFIED_BUYERS">Customers who bought it only</option>
           </select>
-          <span style={hint}>
-            Customers are matched on the email address they ordered with. It is not proof of identity - nothing here is -
-            but it does keep a product page to the people who have actually had the thing.
-          </span>
         </div>
 
         <div className="settings-field" style={field}>
@@ -152,7 +154,7 @@ export function ReviewsSettingsTab() {
             value={settings.minCommentLength}
             onChange={(e) => patch('minCommentLength', Math.max(0, Number(e.target.value) || 0))}
           />
-          <span style={hint}>Stops &quot;ok&quot; counting as a review. Set it to 0 to accept anything.</span>
+          <span className="field-hint">Stops &quot;ok&quot; counting as a review. Set it to 0 to accept anything.</span>
         </div>
 
         <Toggle
@@ -164,10 +166,11 @@ export function ReviewsSettingsTab() {
       </section>
 
       <section className="card">
-        <h3 style={legend}>On the shop</h3>
+        <h3 className="card-title">On the shop</h3>
         <div className="settings-field" style={field}>
           <label htmlFor="rvw-surface" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Where reviews appear on a product page
+            <InfoTip>The tab needs nothing building and puts the reviews in the page itself, which search engines read. Choose Nowhere only if you are placing the Reviews block on your Product Detail layout by hand, or you will have the same reviews on the page twice.</InfoTip>
           </label>
           <select
             id="rvw-surface"
@@ -178,11 +181,6 @@ export function ReviewsSettingsTab() {
             <option value="TAB">In a Reviews tab, beside Description</option>
             <option value="NONE">Nowhere - I will place the Reviews block myself</option>
           </select>
-          <span style={hint}>
-            The tab needs nothing building and puts the reviews in the page itself, which search engines read. Choose
-            Nowhere only if you are placing the Reviews block on your Product Detail layout by hand, or you will have the
-            same reviews on the page twice.
-          </span>
         </div>
 
         <div className="settings-field" style={field}>
@@ -215,7 +213,7 @@ export function ReviewsSettingsTab() {
       </section>
 
       <section className="card">
-        <h3 style={legend}>What the shopper is told</h3>
+        <h3 className="card-title">What the shopper is told</h3>
         <div className="settings-field" style={field}>
           <label htmlFor="rvw-thanks-live" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             After a review that goes up straight away
@@ -245,7 +243,7 @@ export function ReviewsSettingsTab() {
       </section>
 
       <section className="card">
-        <h3 style={legend}>Emails</h3>
+        <h3 className="card-title">Emails</h3>
         <div className="settings-field" style={field}>
           <label htmlFor="rvw-notify" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Tell this address when a review arrives
@@ -259,16 +257,17 @@ export function ReviewsSettingsTab() {
             value={settings.notifyEmail}
             onChange={(e) => patch('notifyEmail', e.target.value)}
           />
-          <span style={hint}>Leave it empty for no notices. Nothing is sent if your site has no email set up.</span>
+          <span className="field-hint">Leave it empty for no notices. Nothing is sent if your site has no email set up.</span>
         </div>
 
+        <div className="settings-group">
         <Toggle
           label="Ask past customers for a review"
           detail="One email per order, a while after it went out, linking to what they bought. Nothing is ever sent to someone who has already reviewed the product, and nobody is asked twice about the same order."
           checked={settings.invitesEnabled}
           onChange={(v) => patch('invitesEnabled', v)}
         />
-        <div className="settings-field" style={field}>
+        <div className="field">
           <label htmlFor="rvw-delay" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             How long after the order to ask (days)
           </label>
@@ -281,7 +280,8 @@ export function ReviewsSettingsTab() {
             value={settings.inviteDelayDays}
             onChange={(e) => patch('inviteDelayDays', Math.min(365, Math.max(0, Number(e.target.value) || 0)))}
           />
-          <span style={hint}>Long enough for the thing to have arrived and been used. Two weeks is a fair default.</span>
+          <span className="field-hint">Long enough for the thing to have arrived and been used. Two weeks is a fair default.</span>
+        </div>
         </div>
       </section>
 
