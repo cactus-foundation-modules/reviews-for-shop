@@ -9,14 +9,6 @@ import type { RvwSettings } from '@/modules/reviews-for-shop/lib/types'
 // and nothing else: own fetch, own save, own permission, own module API. Shop's
 // "Save settings" button stands down while this is showing.
 
-const card = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 12,
-  padding: '1rem 1.25rem',
-  background: 'var(--color-surface)',
-  marginBottom: '1.25rem',
-} as const
-
 const legend = { fontSize: '0.9375rem', fontWeight: 600, margin: '0 0 0.25rem' } as const
 const hint = { display: 'block', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' } as const
 const field = { display: 'grid', gap: '0.25rem', marginBottom: '1rem' } as const
@@ -118,7 +110,7 @@ export function ReviewsSettingsTab() {
       </SettingsHeaderActions>
 
       <div className="settings-masonry">
-      <section style={card}>
+      <section className="card">
         <h3 style={legend}>Before they appear</h3>
         <Toggle
           label="Publish new reviews straight away"
@@ -127,7 +119,7 @@ export function ReviewsSettingsTab() {
           onChange={(v) => patch('autoPublish', v)}
         />
 
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-who" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Who may leave a review
           </label>
@@ -147,7 +139,7 @@ export function ReviewsSettingsTab() {
           </span>
         </div>
 
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-min" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Shortest review you will accept (characters)
           </label>
@@ -171,9 +163,9 @@ export function ReviewsSettingsTab() {
         />
       </section>
 
-      <section style={card}>
+      <section className="card">
         <h3 style={legend}>On the shop</h3>
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-surface" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Where reviews appear on a product page
           </label>
@@ -193,20 +185,7 @@ export function ReviewsSettingsTab() {
           </span>
         </div>
 
-        <Toggle
-          label="Show a Verified purchase badge"
-          detail="Against reviews whose email matched a paid order. The match is recorded either way, so switching this on later labels the reviews you have already collected too."
-          checked={settings.showVerifiedBadge}
-          onChange={(v) => patch('showVerifiedBadge', v)}
-        />
-        <Toggle
-          label="Ask for a headline as well as the review"
-          detail="A one-line summary above the review itself. Optional for the shopper either way."
-          checked={settings.askForTitle}
-          onChange={(v) => patch('askForTitle', v)}
-        />
-
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-per-page" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Reviews shown before &quot;Show more&quot;
           </label>
@@ -220,11 +199,24 @@ export function ReviewsSettingsTab() {
             onChange={(e) => patch('reviewsPerPage', Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
           />
         </div>
+
+        <Toggle
+          label="Show a Verified purchase badge"
+          detail="Against reviews whose email matched a paid order. The match is recorded either way, so switching this on later labels the reviews you have already collected too."
+          checked={settings.showVerifiedBadge}
+          onChange={(v) => patch('showVerifiedBadge', v)}
+        />
+        <Toggle
+          label="Ask for a headline as well as the review"
+          detail="A one-line summary above the review itself. Optional for the shopper either way."
+          checked={settings.askForTitle}
+          onChange={(v) => patch('askForTitle', v)}
+        />
       </section>
 
-      <section style={card}>
+      <section className="card">
         <h3 style={legend}>What the shopper is told</h3>
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-thanks-live" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             After a review that goes up straight away
           </label>
@@ -237,7 +229,7 @@ export function ReviewsSettingsTab() {
             onChange={(e) => patch('thanksPublished', e.target.value)}
           />
         </div>
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-thanks-held" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             After a review that waits for you
           </label>
@@ -252,9 +244,9 @@ export function ReviewsSettingsTab() {
         </div>
       </section>
 
-      <section style={card}>
+      <section className="card">
         <h3 style={legend}>Emails</h3>
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-notify" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             Tell this address when a review arrives
           </label>
@@ -276,7 +268,7 @@ export function ReviewsSettingsTab() {
           checked={settings.invitesEnabled}
           onChange={(v) => patch('invitesEnabled', v)}
         />
-        <div style={field}>
+        <div className="settings-field" style={field}>
           <label htmlFor="rvw-delay" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
             How long after the order to ask (days)
           </label>
